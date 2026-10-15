@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
+import api from "../services/api";
 
 function ProductCard({ product }) {
     const navigate = useNavigate();
@@ -13,29 +14,24 @@ function ProductCard({ product }) {
     const [cartStatus, setCartStatus] = useState("idle");
     const [cartError, setCartError] = useState("");
 
+
     const addToWishlist = async () => {
         setWishlistStatus("loading");
         setWishlistError("");
 
         try {
-            const response = await fetch(
-                `http://localhost:3000/wishlist/${product._id}`,
-                {
-                    method: "POST",
-                    credentials: "include",
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || "Unable to save product");
-            }
+            await api.post(`/wishlist/${product._id}`);
 
             setWishlistStatus("success");
         } catch (error) {
             console.error("Wishlist error:", error);
-            setWishlistError(error.message);
+
+            setWishlistError(
+                error.response?.data?.message ||
+                error.message ||
+                "Unable to save product"
+            );
+
             setWishlistStatus("error");
         }
     };
