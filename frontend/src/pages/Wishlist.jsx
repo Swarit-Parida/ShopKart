@@ -1,5 +1,7 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../services/api";
 
 function Wishlist() {
     const navigate = useNavigate();
@@ -13,26 +15,16 @@ function Wishlist() {
             setLoading(true);
             setError("");
 
-            const response = await fetch(
-                "http://localhost:3000/wishlist",
-                {
-                    method: "GET",
-                    credentials: "include",
-                }
-            );
+            const response = await api.get("/wishlist");
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message || "Unable to load wishlist"
-                );
-            }
-
-            setWishlist(data.wishlist);
+            setWishlist(response.data.wishlist);
         } catch (error) {
             console.error("Wishlist error:", error);
-            setError(error.message);
+            setError(
+                error.response?.data?.message ||
+                error.message ||
+                "Unable to load wishlist"
+            );
         } finally {
             setLoading(false);
         }
@@ -44,21 +36,7 @@ function Wishlist() {
 
     const removeFromWishlist = async (productId) => {
         try {
-            const response = await fetch(
-                `http://localhost:3000/wishlist/${productId}`,
-                {
-                    method: "DELETE",
-                    credentials: "include",
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message || "Unable to remove product"
-                );
-            }
+            await api.delete(`/wishlist/${productId}`);
 
             setWishlist((currentWishlist) =>
                 currentWishlist.filter(
@@ -67,7 +45,11 @@ function Wishlist() {
             );
         } catch (error) {
             console.error("Remove wishlist error:", error);
-            alert(error.message);
+            alert(
+                error.response?.data?.message ||
+                error.message ||
+                "Unable to remove product"
+            );
         }
     };
 
@@ -84,10 +66,8 @@ function Wishlist() {
         return (
             <div className="wishlist-page">
                 <h1>My Wishlist</h1>
-
                 <p>Something went wrong.</p>
                 <p>{error}</p>
-
                 <button onClick={fetchWishlist}>
                     Try Again
                 </button>
@@ -102,9 +82,7 @@ function Wishlist() {
 
                 <div className="empty-wishlist">
                     <div className="empty-heart">❤️</div>
-
                     <h2>Your wishlist is empty</h2>
-
                     <p>
                         Save products you love and find them
                         here later.
@@ -150,14 +128,8 @@ function Wishlist() {
 
                         <div className="wishlist-card-info">
                             <h3>{product.name}</h3>
-
-                            <p>
-                                {product.category}
-                            </p>
-
-                            <h4>
-                                ₹{product.price}
-                            </h4>
+                            <p>{product.category}</p>
+                            <h4>₹{product.price}</h4>
 
                             <p>
                                 {product.stock > 0
