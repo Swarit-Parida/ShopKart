@@ -104,11 +104,15 @@ const loginCustomer = async (req, res) => {
         const token = generateToken(customer._id);
 
         // Store JWT in HttpOnly cookie
+
         res.cookie("token", token, {
             httpOnly: true,
-            secure: false,
-            sameSite: "lax",
+            secure: true,
+            sameSite: "none",
+            path: "/",
+            maxAge: 24 * 60 * 60 * 1000,
         });
+
 
         return res.status(200).json({
             success: true,
@@ -133,7 +137,12 @@ const getMyProfile = async (req, res) => {
     return res.status(200).json(req.user);
 };
 const logoutCustomer = (req, res) => {
-    res.clearCookie("token");
+    res.clearCookie("token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+});
 
     return res.status(200).json({
         success: true,
@@ -141,8 +150,8 @@ const logoutCustomer = (req, res) => {
     });
 };
 module.exports = {
-  registerCustomer,
-  loginCustomer,
-  getMyProfile,
-  logoutCustomer,
+    registerCustomer,
+    loginCustomer,
+    getMyProfile,
+    logoutCustomer,
 };
