@@ -1,61 +1,67 @@
-const cookieParser = require("cookie-parser");
+
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const { loadEnvFile } = require("node:process");
 const mongoose = require("mongoose");
 
-loadEnvFile();
+// Load .env locally if present; Render supplies environment variables.
+try {
+  loadEnvFile();
+} catch (error) {
+  if (error.code !== "ENOENT") throw error;
+}
 
 const app = express();
 
-// Allow requests from the React frontend
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
 
-// Middleware to read JSON request bodies
 app.use(express.json());
 app.use(cookieParser());
 
-// Customer routes
-const customerRoutes = require("./routes/customer.routes");
+// Routes
+app.use("/customers", require("./routes/customer.routes"));
+app.use("/products", require("./routes/product.routes"));
+app.use("/wishlist", require("./routes/wishlist.routes"));
+app.use("/cart", require("./routes/cart.routes"));
+app.use("/orders", require("./routes/order.routes"));
 
-app.use("/customers", customerRoutes);
+// Health check
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    message: "ShopKart backend is running",
+  });
+});
 
-// Product routes
-const productRoutes = require("./routes/product.routes");
+// Database and server
+const PORT = process.env.PORT || 3000;
 
-app.use("/products", productRoutes);
-
-// Wishlist routes
-const wishlistRoutes = require("./routes/wishlist.routes");
-
-app.use("/wishlist", wishlistRoutes);
-
-// Cart routes
-const cartRoutes = require("./routes/cart.routes");
-
-app.use("/cart", cartRoutes);
-
-// Order routes
-const orderRoutes = require("./routes/order.routes");
-
-app.use("/orders", orderRoutes);
-
-// MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected successfully");
 
-    app.listen(3000, () => {
-      console.log("Server running on http://localhost:3000");
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`ShopKart server running on port ${PORT}`);
     });
   })
   .catch((error) => {
-    console.log("MongoDB connection failed");
-    console.log(error.message);
+    console.error("MongoDB connection failed:", error.message);
+    process.exit(1);
   });
